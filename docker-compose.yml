@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: cubesat_monitoring
+    environment:
+      POSTGRES_DB: cubesat_db
+      POSTGRES_USER: cubesat_user
+      POSTGRES_PASSWORD: cubesat_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
