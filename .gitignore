@@ -1,5 +1,5 @@
 # Файлы с секретами
-.env
+# .env
 
 # Данные PostgreSQL
 postgres_data/
