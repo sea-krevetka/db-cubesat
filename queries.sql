@@ -1,25 +1,25 @@
 -- =====================================================
--- 10 аналитических SQL-запросов
+-- 10 аналитических SQL-запросов (вариант А)
 -- =====================================================
 
--- 1. Простая выборка: список всех операциональных спутников
+-- 1. Простая выборка: список спутников
 SELECT id, name, norad_id, launch_date, status 
 FROM satellites 
 WHERE status = 'operational';
 
--- 2. WHERE + фильтрация: аномалии критического уровня за последние 7 дней
+-- 2. WHERE + фильтрация: аномалии за последние 7 дней
 SELECT * FROM anomalies 
 WHERE severity IN ('critical', 'emergency')
   AND timestamp > NOW() - INTERVAL '7 days'
 ORDER BY timestamp DESC;
 
--- 3. JOIN 3+ таблиц: телеметрия температуры + датчик + подсистема + спутник
+-- 3. JOIN 3 таблиц: телеметрия с привязкой к спутникам
 SELECT 
     s.name AS satellite_name,
     sub.name AS subsystem_name,
     sens.sensor_type,
     t.timestamp,
-    t.value AS temperature_celsius
+    t.value
 FROM telemetry t
 JOIN sensors sens ON t.sensor_id = sens.id
 JOIN subsystems sub ON sens.subsystem_id = sub.id
@@ -29,7 +29,7 @@ WHERE sens.sensor_type = 'temperature'
 ORDER BY t.timestamp DESC
 LIMIT 20;
 
--- 4. Агрегация + GROUP BY: средняя температура по каждому спутнику за последние 24 часа
+-- 4. Агрегация + GROUP BY: средняя температура по спутникам
 SELECT 
     s.name AS satellite_name,
     ROUND(AVG(t.value), 2) AS avg_temperature_celsius,
@@ -43,7 +43,7 @@ WHERE sens.sensor_type = 'temperature'
 GROUP BY s.id, s.name
 ORDER BY avg_temperature_celsius DESC;
 
--- 5. JOIN 4 таблиц + сортировка: спутники → сеансы → станции
+-- 5. JOIN 4 таблиц: сеансы + станции + спутники
 SELECT 
     s.name AS satellite_name,
     gs.name AS ground_station,
@@ -59,7 +59,7 @@ LEFT JOIN planned_passes pp ON vw.id = pp.window_id
 LEFT JOIN actual_passes ap ON pp.id = ap.planned_pass_id
 ORDER BY vw.start_time DESC;
 
--- 6. Оконная функция (LAG): сравнение текущей температуры с предыдущей
+-- 6. Оконная функция (LAG): сравнение температуры с предыдущей
 SELECT 
     s.name AS satellite_name,
     t.timestamp,
@@ -87,7 +87,7 @@ WHERE sens.sensor_type = 'temperature'
 GROUP BY s.id, s.name
 HAVING AVG(t.value) > 50;
 
--- 8. Подзапрос с EXISTS: станции с непроведёнными запланированными сеансами
+-- 8. Подзапрос с EXISTS: станции с непроведёнными сеансами
 SELECT DISTINCT gs.name 
 FROM ground_stations gs
 WHERE EXISTS (
@@ -101,7 +101,7 @@ WHERE EXISTS (
       )
 );
 
--- 9. WITH (CTE) + агрегация: топ-2 спутников по количеству аномалий
+-- 9. CTE + RANK: топ-2 спутников по аномалиям
 WITH anomaly_counts AS (
     SELECT 
         s.name AS satellite_name,
@@ -116,14 +116,14 @@ FROM anomaly_counts
 WHERE rank <= 2
 ORDER BY total_anomalies DESC;
 
--- 10. Вызов пользовательской функции (из functions.sql)
-SELECT * FROM get_upcoming_passes(
-    (SELECT id FROM satellites WHERE name = 'CubeSat-1'), 
-    48
-);
-
--- Дополнительный запрос (для демонстрации здоровья спутника)
-SELECT * FROM get_satellite_health(
-    (SELECT id FROM satellites WHERE name = 'CubeSat-1'),
-    24
-);
+-- 10. Сортировка + LIMIT: 5 последних аномалий
+SELECT 
+    s.name AS satellite_name,
+    a.timestamp,
+    a.severity,
+    a.description,
+    CASE WHEN a.resolved THEN '✅ Resolved' ELSE '❌ Active' END AS status
+FROM anomalies a
+JOIN satellites s ON a.satellite_id = s.id
+ORDER BY a.timestamp DESC
+LIMIT 5;

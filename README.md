@@ -5,62 +5,71 @@
 Группа: [указать группу]  
 СибГУТИ, кафедра ТС и ВС
 
+## Вариант выполнения
+**Вариант А: Контейнеризация и автоматическая инициализация (Docker)**
+
 ## Описание предметной области
 Проект реализует базу данных для Центра управления полётами (ЦУП) группировки малых космических аппаратов формата CubeSat. Система позволяет:
-- Отслеживать телеметрию (температура, напряжение, ток, радиация) с датчиков
-- Планировать сеансы связи с наземными станциями на основе окон видимости
-- Фиксировать фактические сеансы и объёмы переданных данных
-- Вести журнал отправленных команд и их выполнения
-- Автоматически регистрировать аномалии при выходе телеметрии за допустимые пределы
-- Анализировать состояние спутников с помощью хранимых функций
+- Отслеживать телеметрию с датчиков
+- Планировать сеансы связи с наземными станциями
+- Фиксировать фактические сеансы и объёмы данных
+- Вести журнал команд
+- Регистрировать аномалии
 
 ## Технологии
-- СУБД: PostgreSQL 14+
-- Язык: PL/pgSQL
-- Инструменты: DBeaver / pgAdmin / psql
-
-## ER-диаграмма
-![ER-диаграмма](./diagram.png)
+- Docker & Docker Compose
+- PostgreSQL 14 (официальный образ `postgres:14-alpine`)
+- pgAdmin 4 (опционально, для визуального управления)
 
 ## Структура таблиц (11 таблиц)
 1. satellites — спутники
-2. subsystems — подсистемы (иерархические)
+2. subsystems — подсистемы
 3. sensors — датчики
-4. telemetry — поток телеметрии
+4. telemetry — телеметрия
 5. ground_stations — наземные станции
-6. visibility_windows — рассчитанные окна видимости
+6. visibility_windows — окна видимости
 7. planned_passes — запланированные сеансы
 8. actual_passes — фактические сеансы
-9. commands — список команд
-10. command_log — журнал выполнения команд
-11. anomalies — аномалии/события
+9. commands — команды
+10. command_log — журнал команд
+11. anomalies — аномалии
 
 ## Индексы
-Созданы индексы на:
-- `telemetry.timestamp`
-- `telemetry.sensor_id`
-- `visibility_windows.start_time`
-- `anomalies.timestamp`
-- `command_log.sent_at`
+- `idx_telemetry_timestamp` — на временные выборки
+- `idx_telemetry_sensor_time` — для фильтрации по датчикам
+- `idx_visibility_windows_start` — для поиска окон
+- `idx_anomalies_satellite_time` — для аналитики аномалий
+- `idx_command_log_sent` — для журнала команд
 
 ## Ограничения (CHECK, UNIQUE, NOT NULL)
 - Статусы спутников: operational/maintenance/safe_mode/decommissioned
-- Диапазоны широты/долготы для наземных станций
+- Диапазоны широты/долготы для станций (-90..90, -180..180)
 - Приоритет сеансов от 1 до 5
 - Типы аномалий: info/warning/critical/emergency
-- Уникальность имени спутника и norad_id
+- Уникальность: имя спутника, norad_id
 
-## Хранимые функции (PL/pgSQL)
-1. `get_upcoming_passes(satellite_id, hours_ahead)` — возвращает ближайшие окна видимости
-2. `get_satellite_health(satellite_id, hours_back)` — возвращает агрегированные метрики здоровья спутника
+## Тестовые данные
+- **Всего записей: 100+** (соответствует требованию ≥30)
+- Спутники: 5
+- Подсистемы: 15
+- Датчики: 20
+- Телеметрия: 60
+- Наземные станции: 4
+- Окна видимости: 12
+- Плановые сеансы: 10
+- Фактические сеансы: 5
+- Команды: 8
+- Журнал команд: 8
+- Аномалии: 8
 
-## Триггеры
-1. `trigger_check_telemetry_limits` — автоматически создаёт аномалию при выходе телеметрии за пределы min_val/max_val
-2. `trigger_update_resolved_at` — автоматически заполняет resolved_at при отметке аномалии как решённой
+## Запуск проекта
 
-## Установка и запуск
-
-### 1. Установка PostgreSQL
+### 1. Установка Docker и Docker Compose
 ```bash
-sudo apt install postgresql-14  # Ubuntu/Debian
-# или скачать с https://www.postgresql.org/download/
+# Установка Docker (Ubuntu/Debian)
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# Установка Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
