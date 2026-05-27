@@ -1,8 +1,8 @@
 -- =====================================================
 -- Схема БД: Мониторинг спутниковой группировки CubeSat
--- Вариант А: Docker + автоматическая инициализация
 -- =====================================================
 
+-- Удаляем таблицы в правильном порядке (с учётом зависимостей)
 DROP TABLE IF EXISTS command_log CASCADE;
 DROP TABLE IF EXISTS actual_passes CASCADE;
 DROP TABLE IF EXISTS planned_passes CASCADE;
