@@ -24,7 +24,7 @@ CREATE TABLE satellites (
     status VARCHAR(20) NOT NULL CHECK (status IN ('operational', 'degraded', 'safe_mode', 'dead'))
 );
 
--- 2. Подсистемы (упрощённо — без parent_subsystem_id, чтобы избежать рекурсивных проблем)
+-- 2. Подсистемы 
 CREATE TABLE subsystems (
     id SERIAL PRIMARY KEY,
     satellite_id INTEGER NOT NULL REFERENCES satellites(id) ON DELETE CASCADE,

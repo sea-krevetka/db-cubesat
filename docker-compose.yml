@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   postgres:
-    image: postgres:15
+    build: .
     container_name: cubesat_monitoring
     environment:
       POSTGRES_DB: cubesat_db
@@ -11,8 +9,14 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./init:/docker-entrypoint-initdb.d
       - postgres_data:/var/lib/postgresql/data
+      - ./backup:/backup
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cubesat_user -d cubesat_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:

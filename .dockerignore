@@ -1,0 +1,31 @@
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Логи и временные файлы
+*.log
+*.tmp
+*.bak
+
+# Документация (не нужна в образе)
+*.pdf
+*.png
+*.jpg
+diagram.*
+
+# README (не нужен в образе)
+README.md
+
+# Бэкапы
+backup/
+*.sql.bak
+
+# Системные файлы
+.DS_Store
+Thumbs.db
